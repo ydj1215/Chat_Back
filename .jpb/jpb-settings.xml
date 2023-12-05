@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+    <component name="PersistenceUnitSettings">
+        <persistence-units>
+            <persistence-unit name="Default">
+                <packages>
+                    <!-- JPA 설정을 위한 파일 : 해당 패키지 안의 클래스들이 JPA 엔티티로 관리되도록 설정,
+                    데이터베이스 연결 및 엔티티 클래스 관리에 대한 설정을 담당
+                    -->
+                    <package value="com.sample.chat"/>
+                </packages>
+            </persistence-unit>
+        </persistence-units>
+    </component>
+</project>
