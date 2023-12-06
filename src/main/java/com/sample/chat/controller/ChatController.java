@@ -1,7 +1,7 @@
 package com.sample.chat.controller;
 
 import com.sample.chat.dto.ChatRoomReqDto;
-import com.sample.chat.dto.ChatRoomResDto;
+import com.sample.chat.entity.ChatMessage;
 import com.sample.chat.entity.ChatRoom;
 import com.sample.chat.service.ChatService;
 import lombok.extern.slf4j.Slf4j;
@@ -67,4 +67,19 @@ public class ChatController {
         chatService.removeRoom(roomId);
         return ResponseEntity.ok("채팅방이 삭제되었습니다.");
     }
+    
+    // 이전 채팅 로그 불러오기
+    @GetMapping("/{roomId}/messages")
+    public ResponseEntity<List<ChatMessage>> getPreviousMessages(@PathVariable Long roomId) {
+        List<ChatMessage> messages = chatService.getPreviousMessages(roomId);
+        return ResponseEntity.ok(messages);
+    }
+    // Q. List <> 안의 형식을 엔티티로 했을 때와 Dto로 했을 때의 차이?
+    // 엔티티는 데이터 베이스와 직접적으로 매핑되는 객체이기 때문에,
+    // 데이터 베이스의 구조가 변경되면 엔티티도 함께 변경되어야 하지만,
+    // Dto는 사용자에게 보여주는 화면에 맞추어 설계되기 때문에, 변경되어도 데이터 베이스에 영향을 주지 않는다.
+    // 엔티티와 달리 Dto를 사용하면 필요한 데이터만 선택적으로 전달해 데이터 보안을 강화할 수 있다.
+    // 또한 엔티티는 사용하지 않는 필드를 가지고 있을 수도 있기 때문에,
+    // Dto를 사용하여 필요한 필드만을 클라이언트에게 전달한다면 성능을 향상시킬 수 있다.
+
 }

@@ -124,6 +124,8 @@ public class ChatService {
                 chatMessage.setType(ChatMessage.MessageType.ENTER);
                 chatMessage.setMessage(chatMessageDto.getMessage());
                 chatMessage.setChatRoom(room);
+                chatMessage.setSender(memberRepository.findByName(chatMessageDto.getSender()));
+                log.warn("으악 : " + chatMessage.getSender());
 
                 // chatMessageDto에서 이미 sender가 설정되어 있으므로 추가 확인은 필요 없음
                 chatMessageRepository.save(chatMessage);
@@ -177,13 +179,8 @@ public class ChatService {
                 Member member = chatRoomMember.getMember();
                 WebSocketSession session = webSocketHandler.findSessionByMemberId(member.getId());
                 if (session != null) {
-                    // 메시지를 보낸 사용자와 현재 세션의 사용자가 같으면 '나'로, 아니면 '메시지를 보낸 사용자'로 표시
-                    if (member.getName().equals(messageDto.getSender())) {
-                        messageDto.setSender("나");
-                    } else {
-                        messageDto.setSender(member.getName());
-                    }
                     sendMessage(session, messageDto);
+                    log.warn("리액트로 보내는 메시지 분석 : " + messageDto.getSender());
                 }
             }
         }
@@ -193,27 +190,7 @@ public class ChatService {
     // 웹소켓 세션에 메시지를 전송
     public <T> void sendMessage(WebSocketSession session, T message) {
         try {
-            // 메시지를 받아, 이를 JSON 문자열로 변환한 후, TextMessage 객체로 만들어 세션에 전송
             String messageStr = objectMapper.writeValueAsString(message);
-
-            // ChatMessage 엔티티를 생성하고 저장
-            if (message instanceof ChatMessageDto) { // instanceof : 특정 객체가 특정 클래스 혹은 인터페이스의 인스턴스인지를 확인하는 연산자
-                ChatMessageDto messageDto = (ChatMessageDto) message;
-                ChatMessage chatMessage = new ChatMessage();
-                chatMessage.setType(ChatMessage.MessageType.valueOf(messageDto.getType().name()));
-                chatMessage.setMessage(messageDto.getMessage());
-                chatMessage.setChatRoom(findRoomById(Long.valueOf(messageDto.getRoomId())));
-
-                String senderName = messageDto.getSender();
-                Member sender = memberRepository.findByName(senderName); // 메시지에 포함된 사용자의 이름을 가져온다.
-                if (sender != null) {
-                    chatMessage.setSender(sender);
-                } else {
-                    log.error("sendMessage sender2222 = null 에러 발생!");
-                }
-                chatMessageRepository.save(chatMessage);
-            }
-
             session.sendMessage(new TextMessage(messageStr));
         } catch (IOException e) {
             log.error(e.getMessage(), e);
@@ -253,24 +230,22 @@ public class ChatService {
         ChatMessageDto chatMessage = event.getChatMessage();
         String roomId = chatMessage.getRoomId();
 
-        // 메시지를 데이터베이스에 저장
         ChatMessage chatMessageEntity = new ChatMessage();
         chatMessageEntity.setType(ChatMessage.MessageType.valueOf(chatMessage.getType().name()));
         chatMessageEntity.setMessage(chatMessage.getMessage());
         chatMessageEntity.setChatRoom(findRoomById(Long.valueOf(roomId)));
 
-        String senderEmail = chatMessage.getSender(); // chatMessage.getSender()에는 이메일이 저장되어 있습니다.
+        String senderEmail = chatMessage.getSender();
         log.warn("handleMessageReceivedEvent senderName : " + senderEmail);
-        Optional<Member> senderOpt = memberRepository.findByEmail(senderEmail); // 이메일에 해당하는 Member 객체를 찾습니다.
-        if (senderOpt.isPresent()) { // Member 객체가 존재하면
-            Member sender = senderOpt.get(); // Optional<Member>에서 Member 객체를 꺼냅니다.
-            chatMessageEntity.setSender(sender); // ChatMessage 엔티티에 보낸이를 설정합니다.
+        Optional<Member> senderOpt = memberRepository.findByEmail(senderEmail);
+        if (senderOpt.isPresent()) {
+            Member sender = senderOpt.get();
+            chatMessageEntity.setSender(sender);
         } else {
-            log.error("handleMessageReceivedEvent sender = null 에러 발생!"); // Member 객체가 존재하지 않으면 로그를 출력합니다.
+            log.error("handleMessageReceivedEvent sender = null 에러 발생!");
         }
-        chatMessageRepository.save(chatMessageEntity); // ChatMessage 엔티티를 저장합니다.
+        chatMessageRepository.save(chatMessageEntity);
 
-        // 모든 사용자에게 메시지 전송
         this.sendMessageToAll(Long.valueOf(roomId), chatMessage);
     }
 
@@ -282,5 +257,10 @@ public class ChatService {
         String roomId = chatMessage.getRoomId();
 
         this.removeSessionAndHandleExit(Long.valueOf(roomId), session, chatMessage);
+    }
+
+    // 이전 채팅 로그 불러오기
+    public List<ChatMessage> getPreviousMessages(Long roomId) {
+        return chatMessageRepository.findByChatRoom_IdWithSender(roomId);
     }
 }
