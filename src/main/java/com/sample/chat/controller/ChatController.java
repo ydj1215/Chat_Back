@@ -5,6 +5,7 @@ import com.sample.chat.entity.ChatMessage;
 import com.sample.chat.entity.ChatRoom;
 import com.sample.chat.service.ChatService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +21,8 @@ import static com.sample.chat.utils.Common.CORS_ORIGIN;
 public class ChatController {
     private final ChatService chatService;
 
-    ChatController(ChatService chatService) {
+    @Autowired
+    public ChatController(ChatService chatService) {
         this.chatService = chatService;
     }
 
